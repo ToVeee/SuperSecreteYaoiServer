@@ -230,6 +230,7 @@ async function notify(chatId, manga) {
         );
 
         subscription[manga] = { ...subscription[manga], chapters: uniqueID.size };
+        await saveSubscriptions();
 
     } catch (error) {
         console.error(error);
