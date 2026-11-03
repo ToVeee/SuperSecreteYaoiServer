@@ -229,6 +229,8 @@ async function notify(chatId, manga) {
             `Manga: ${mangaTitle}\nChapters: ${uniqueID.size}`
         );
 
+        subscription[manga] = { ...subscription[manga], chapters: uniqueID.size };
+
     } catch (error) {
         console.error(error);
         await bot.sendMessage(chatId, 'Something went wrong while checking the manga.');
