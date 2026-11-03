@@ -133,12 +133,12 @@ async function checkForNewChapters() {
         const currentChapters = mangaData.chapters;
         const newChapters = await getChapters(mangaData.url);
 
-        if (newChapters > currentChapters) {
-            mangaData.chapters = newChapters;
+        if (newChapters.chapterCount > currentChapters) {
+            mangaData.chapters = newChapters.chapterCount;
 
             await saveSubscriptions();
             for (const chatId of mangaData.subscribers) {
-                await bot.sendMessage(chatId, `New chapter(s) available for ${mangaName}! Total chapters: ${newChapters}`);
+                await bot.sendMessage(chatId, `New chapter(s) available for ${mangaName}! Total chapters: ${newChapters.chapterCount}`);
             }
         }
     }
@@ -152,7 +152,19 @@ async function getChapters(url) {
     }
 
     const $ = cheerio.load(await response.text());
-    return $('.list-group-item.list-chapter').length;
+
+    const mangaTitle = $('.title').text().trim();
+
+    const uniqueID = new Set();
+
+    $('.list-group-item.list-chapter').each((index, element) => {
+        const id = $(element).attr('id');
+
+        if (id && id !== 'chapter-0') {
+            uniqueID.add(id);
+        }
+    });
+    return { mangaTitle, chapterCount: uniqueID.size };
 }
 
 async function addManga(url) {
@@ -166,7 +178,7 @@ async function addManga(url) {
     const newSubscription = {
         url: url,
         subscribers: [],
-        chapters: chapters
+        chapters: chapters.chapterCount
     };
 
     subscription[manga] = newSubscription;
