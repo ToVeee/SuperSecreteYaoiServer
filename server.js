@@ -1,3 +1,14 @@
+const http = require('http');
+
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Bot is running!');
+}).listen(PORT, '0.0.0.0', () => {
+    console.log(`Listening on port ${PORT}`);
+});
+
 const fs = require('fs').promises;
 const bot = require('./bot.js');
 const cheerio = require('cheerio');
@@ -38,7 +49,7 @@ async function listen() {
         if (command === '/start') {
             await bot.sendMessage(
                 chatId,
-                'Welcome! Use:\n/subscribe manga-name to subscribe.\n/chapters manga-name to check chapters.\n/AddSubscription manga-name to add a manga to the list.\n/RemoveSubscription manga-name to remove a manga from the list.\n/subscriptions to view your subscriptions.'
+                'Welcome! Use:\n/subscribe manga-name to subscribe.\n/chapters manga-name to check chapters.\n/AddSubscription manga-name to add a manga to the list.\n/RemoveSubscription manga-name to remove a manga from the list.\n/subscriptions to view your subscriptions.\n/sublist to see available subscriptions'
             );
         }
 
@@ -77,7 +88,7 @@ async function listen() {
             }
         }
 
-        if (command === '/manhwas') {
+        if (command === '/sublist') {
             const manhwas = Object.keys(subscription).map(key => subscription[key].url);
             if (manhwas.length === 0) {
                 await bot.sendMessage(chatId, 'No manhwas available.');
