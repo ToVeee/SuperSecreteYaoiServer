@@ -97,7 +97,7 @@ async function listen() {
             const manga = subscription[input];
 
             if (!manga) {
-                await bot.sendMessage(chatId, 'Manga not found. Check /manhwas.');
+                await bot.sendMessage(chatId, 'Manga not found. Check /sublist.');
                 continue;
             }
 
