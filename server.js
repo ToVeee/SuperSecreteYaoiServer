@@ -1,3 +1,4 @@
+
 const fs = require('fs').promises;
 const bot = require('./bot.js');
 const cheerio = require('cheerio');
@@ -29,7 +30,7 @@ async function listen() {
         if (!message?.text) continue;
 
         const text = message.text;
-        const chatId = message.chat.id;
+        const chatId = String(message.chat.id);
 
         const args = text.split(' ');
         const command = args[0];
@@ -63,15 +64,16 @@ async function listen() {
             }
 
             if (subscription[input]) {
-                subscription[input] = subscription[input].filter(id => id !== chatId);
+                subscription[input].subscribers = subscription[input].subscribers.filter(id => id !== chatId);
                 await saveSubscriptions();
                 await bot.sendMessage(chatId, `Unsubscribed from ${input}.`);
             } else {
                 await bot.sendMessage(chatId, `You are not subscribed to ${input}.`);
             }
         }
+
         if (command === '/subscriptions') {
-            const subs = Object.keys(subscription).filter(manga => subscription[manga].includes(chatId));
+            const subs = Object.keys(subscription).filter(manga => subscription[manga].subscribers.includes(chatId));
             for (const manga of subs) {
                 await bot.sendMessage(chatId, `You are subscribed to: ${manga}`);
             }
@@ -97,7 +99,7 @@ async function listen() {
             const manga = subscription[input];
 
             if (!manga) {
-                await bot.sendMessage(chatId, 'Manga not found. Check /manhwas.');
+                await bot.sendMessage(chatId, 'Manga not found. Check /sublist.');
                 continue;
             }
 
@@ -130,16 +132,20 @@ async function listen() {
 async function checkForNewChapters() {
     for (const [mangaName, mangaData] of Object.entries(subscription)) {
 
-        const currentChapters = mangaData.chapters;
-        const newChapters = await getChapters(mangaData.url);
+        try {
+            const currentChapters = mangaData.chapters;
+            const newChapters = await getChapters(mangaData.url);
 
-        if (newChapters.chapterCount > currentChapters) {
-            mangaData.chapters = newChapters.chapterCount;
+            if (newChapters.chapterCount > currentChapters) {
+                mangaData.chapters = newChapters.chapterCount;
 
-            await saveSubscriptions();
-            for (const chatId of mangaData.subscribers) {
-                await bot.sendMessage(chatId, `New chapter(s) available for ${mangaName}! Total chapters: ${newChapters.chapterCount}`);
+                await saveSubscriptions();
+                for (const chatId of mangaData.subscribers) {
+                    await bot.sendMessage(chatId, `New chapter(s) available for ${mangaName}! Total chapters: ${newChapters.chapterCount}`);
+                }
             }
+        } catch (error) {
+            console.error(`Error checking ${mangaName}:`, error);
         }
     }
 }
@@ -168,12 +174,13 @@ async function getChapters(url) {
 }
 
 async function addManga(url) {
+    const manga = url.split('/').at(-1);
 
     if (subscription[manga]) {
-        await bot.sendMessage(chatId, 'Manga already exists!');
+        console.log('Manga already exists!');
         return;
     }
-    const manga = url.split('/').at(-1);
+
     const chapters = await getChapters(url);
     const newSubscription = {
         url: url,
@@ -213,6 +220,11 @@ async function notify(chatId, manga) {
 
         });
 
+        if (subscription[manga]) {
+            subscription[manga].chapters = uniqueID.size;
+            await saveSubscriptions();
+        }
+
         await bot.sendMessage(
             chatId,
             `Manga: ${mangaTitle}\nChapters: ${uniqueID.size}`
@@ -244,7 +256,12 @@ async function start() {
 
 async function startChapterChecker() {
     while (true) {
-        await checkForNewChapters();
+        try {
+            await checkForNewChapters();
+        } catch (error) {
+            console.error('Chapter checker error:', error);
+        }
+
         await new Promise(resolve => setTimeout(resolve, 300000));
     }
 }
